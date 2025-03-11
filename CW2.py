@@ -262,5 +262,3 @@ if __name__ == "__main__":
 # Please tell the lines that are relavant to that reference.
 # For example: 
 # Line 80-87 is inspired by a code at https://stackoverflow.com/questions/48414212/how-to-calculate-accuracy-from-decision-trees
-
-
