@@ -149,18 +149,17 @@ def optimal_ccp_alpha_single_feature(x_train, y_train, x_test, y_test, header_li
     # Insert your code here for task 11
 
     # Find the most important feature
-    feature = important_feature(x_train, y_train, header_list)
-    feature_index = header_list.index(feature)
+    best_feature = important_feature(x_train, y_train, header_list)
+    feature_index = header_list.index(best_feature)
 
     # Extract only the most important feature
     x_train_single = x_train[:, feature_index].reshape(-1, 1)
     x_test_single = x_test[:, feature_index].reshape(-1, 1)
 
     # ✅ Call the function correctly
-    result = optimal_ccp_alpha(x_train_single, y_train, x_test_single, y_test)
+    optimal_ccp_alpha = globals()['optimal_ccp_alpha'](x_train_single, y_train, x_test_single, y_test)
 
-    return result
-    # return optimal_ccp_alpha
+    return optimal_ccp_alpha
 
 # Task 12 [10 marks]: 
 def optimal_depth_two_features(x_train, y_train, x_test, y_test, header_list):
