@@ -121,8 +121,9 @@ def optimal_ccp_alpha(x_train, y_train, x_test, y_test):
     base_model = train_decision_tree(x_train, y_train, ccp_alpha=0)
     base_acc, _ = evaluate_model(base_model, x_test, y_test)
 
+    # if base model is perfectly accurate return 0
     if base_acc == 1.0:
-        return 0.0
+        return 0
 
     # define accuracy range within 1% of base accuracy
     acc_range = (base_acc - 0.01, base_acc + 0.01)
