@@ -69,6 +69,7 @@ def split_data(data, test_size=0.3, random_state=1):
     np.random.seed(1)
 
     # Insert your code here for task 4
+    # error message in case of data faults
     if data.shape[0] <= 1:
         raise ValueError("Not enough data to split. Check dataset filtering.")
 
