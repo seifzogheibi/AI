@@ -23,33 +23,42 @@ def load_data(file_path, delimiter=','):
     if not os.path.isfile(file_path):
         warnings.warn(f"Task 1: Warning - CSV file '{file_path}' does not exist.")
         return None, None, None
+    
     # Insert your code here for task 1
     df = pd.read_csv(file_path, delimiter=delimiter)
     num_rows = df.shape[0]
-    data = df.to_numpy(dtype=float)  # Convert to numpy array
+    data = df.to_numpy(dtype=float)
     header_list = df.columns.tolist()
 
     return num_rows, data, header_list
 
 # Task 2[8 marks]: 
 def filter_data(data):
-    # filtered_data=[None]*1
+    filtered_data=[None]*1
+
     # Insert your code here for task 2
-    print(f"Original Data Shape: {data.shape}")  # Debugging
     data = np.array(data, dtype=float)
+
+    # remove missing values (-99)
     filtered_data = data[~np.any(data == -99, axis=1)]
-    print(f"Filtered Data Shape: {filtered_data.shape}")  # Debugging
 
     return filtered_data
 
 # Task 3 [8 marks]: 
 def statistics_data(data):
     coefficient_of_variation=None
+
     # Insert your code here for task 3
+    # call task 2 to remove missing values
     data = filter_data(data)
-    features = data[:, :-1]  # Exclude the label column
-    means = np.mean(features, axis=0)
+
+    # pull features in all columns without the last column
+    features = data[:, :-1]
+
+    # calculate standard deviations and means
     stds = np.std(features, axis=0)
+    means = np.mean(features, axis=0)
+
     coefficient_of_variation = np.where(means == 0, np.inf, stds / means)
 
     return coefficient_of_variation
@@ -58,11 +67,15 @@ def statistics_data(data):
 def split_data(data, test_size=0.3, random_state=1):
     x_train, x_test, y_train, y_test=None, None, None, None
     np.random.seed(1)
+
     # Insert your code here for task 4
-    if data.shape[0] <= 1:  # Prevent splitting if too few rows exist
+    if data.shape[0] <= 1:
         raise ValueError("Not enough data to split. Check dataset filtering.")
 
-    x, y = data[:, :-1], data[:, -1]  # Extract features (x) and labels (y)
+    x = data[:, :-1]
+    y = data[:, -1]
+    
+    # split train and test groups making sure the ratio is maintained in the label column
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, stratify=y, random_state=random_state)
 
     return x_train, x_test, y_train, y_test
@@ -70,8 +83,10 @@ def split_data(data, test_size=0.3, random_state=1):
 # Task 5 [8 marks]: 
 def train_decision_tree(x_train, y_train,ccp_alpha=0):
     model=None
+
     # Insert your code here for task 5
     model = DecisionTreeClassifier(ccp_alpha=ccp_alpha, random_state=1)
+
     model.fit(x_train, y_train)
 
     return model
@@ -79,7 +94,9 @@ def train_decision_tree(x_train, y_train,ccp_alpha=0):
 # Task 6 [8 marks]: 
 def make_predictions(model, X_test):
     y_test_predicted=None
+
     # Insert your code here for task 6
+    # give predictions based on X_test feqtuers
     y_test_predicted = model.predict(X_test)
 
     return y_test_predicted
@@ -87,43 +104,43 @@ def make_predictions(model, X_test):
 # Task 7 [8 marks]: 
 def evaluate_model(model, x, y):
     accuracy, recall=None,None
+
     # Insert your code here for task 7
-    y_pred = model.predict(x)
-    accuracy = accuracy_score(y, y_pred)
-    recall = recall_score(y, y_pred)
+    y_predict = model.predict(x)
+    accuracy = accuracy_score(y, y_predict)
+    recall = recall_score(y, y_predict)
 
     return accuracy, recall
 
 # Task 8 [8 marks]: 
 def optimal_ccp_alpha(x_train, y_train, x_test, y_test):
-    optimal_ccp_alpha=None
+    optimal_ccp=None
     # Insert your code here for task 8
-
-    # Train initial unpruned tree
+    # initial base (unpruned) model
     base_model = train_decision_tree(x_train, y_train, ccp_alpha=0)
     base_acc, _ = evaluate_model(base_model, x_test, y_test)
 
-    # Define the accuracy range within which we look for optimal ccp_alpha
-    acc_range = (base_acc - 0.01, base_acc + 0.01)
-    best_alpha = 0  # ✅ Temporary variable to store the best pruning parameter
+    if base_acc == 1.0:
+        return 0.0
 
-    # Loop to find the best pruning parameter
-    for alpha in np.arange(0.001, 1.0, 0.001):
+    # define accuracy range within 1% of base accuracy
+    acc_range = (base_acc - 0.01, base_acc + 0.01)
+
+    # loop through increasing alpha to find best parameter
+    for alpha in np.arange(0.001, 1.001, 0.001):
         model = train_decision_tree(x_train, y_train, ccp_alpha=alpha)
         acc, _ = evaluate_model(model, x_test, y_test)
 
-        if acc < acc_range[0]:  # Stop if accuracy drops too much
+        # exit loop if accuracy becomes too low or store best value for alpha
+        if acc < acc_range[0]:
             break
-        best_alpha = alpha  # Store the best alpha
+        optimal_ccp = alpha
 
-    optimal_ccp_alpha = best_alpha  # ✅ Assign the correct value
-
-    return optimal_ccp_alpha
+    return optimal_ccp
 
 # Task 9 [8 marks]: 
 def tree_depths(model):
     depth=None
-    # Get the depth of the unpruned tree
     # Insert your code here for task 9
     depth = model.get_depth()
 
@@ -134,46 +151,71 @@ def important_feature(x_train, y_train,header_list):
     best_feature=None
     # Insert your code here for task 10
     alpha = 0
-    while True:
+    # store last valid feature before depth is 0
+    last_valid_feature = None
+
+    while alpha <= 1.0:
         model = train_decision_tree(x_train, y_train, ccp_alpha=alpha)
-        if model.get_depth() == 1:
+        depth = model.get_depth()
+
+        # store and exit loop if tree depth becomes 1
+        if depth == 1:
             best_feature = header_list[model.tree_.feature[0]]
-            break
+            break 
+
+        # track last valid feature before tree colapse
+        if depth > 0:
+            last_valid_feature = header_list[model.tree_.feature[0]]
+
         alpha += 0.01
+
+    # use last valid feature if depth never becomes =1
+    if best_feature is None:
+        best_feature = last_valid_feature  
 
     return best_feature
     
 # Task 11 [10 marks]: 
 def optimal_ccp_alpha_single_feature(x_train, y_train, x_test, y_test, header_list):
-    optimal_ccp_alpha=None
+    optimal_ccp=None
     # Insert your code here for task 11
-
-    # Find the most important feature
+    # find most important feature and its index
     best_feature = important_feature(x_train, y_train, header_list)
     feature_index = header_list.index(best_feature)
 
-    # Extract only the most important feature
+    # only pull the most important feature
     x_train_single = x_train[:, feature_index].reshape(-1, 1)
     x_test_single = x_test[:, feature_index].reshape(-1, 1)
 
-    # ✅ Call the function correctly
-    optimal_ccp_alpha = globals()['optimal_ccp_alpha'](x_train_single, y_train, x_test_single, y_test)
+    # call task 8
+    optimal_ccp= optimal_ccp_alpha(x_train_single, y_train, x_test_single, y_test)
 
-    return optimal_ccp_alpha
+    return optimal_ccp
 
 # Task 12 [10 marks]: 
 def optimal_depth_two_features(x_train, y_train, x_test, y_test, header_list):
     optimal_depth=None
     # Insert your code here for task 12
+    # call task 10 to find most important feature
     first_feature = important_feature(x_train, y_train, header_list)
     first_index = header_list.index(first_feature)
+
+    # remove most important feature
     reduced_headers = header_list[:]
     reduced_headers.remove(first_feature)
+
+    # find next most important feature and its index
     second_feature = important_feature(x_train[:, [i for i in range(len(header_list) - 1) if i != first_index]], y_train, reduced_headers)
     second_index = header_list.index(second_feature)
+
+    # use these the two most important features for training and testing
     x_train_two = x_train[:, [first_index, second_index]]
     x_test_two = x_test[:, [first_index, second_index]]
+
+    # call task 8 to find alpha between the two
     best_alpha = optimal_ccp_alpha(x_train_two, y_train, x_test_two, y_test)
+
+    # train the decision tree using best alpha and find its depth
     model = train_decision_tree(x_train_two, y_train, ccp_alpha=best_alpha)
     optimal_depth = model.get_depth()
 
@@ -257,8 +299,14 @@ if __name__ == "__main__":
     optimal_depth_two = optimal_depth_two_features(x_train, y_train, x_test, y_test, header_list)
     print(f"Optimal tree depth using two most important features: {optimal_depth_two}")
     print("-" * 50)        
+
 # References: 
 # Here please provide recognition to any source if you have used or got code snippets from
 # Please tell the lines that are relavant to that reference.
 # For example: 
 # Line 80-87 is inspired by a code at https://stackoverflow.com/questions/48414212/how-to-calculate-accuracy-from-decision-trees
+
+# Task 4 is inspired by https://stackoverflow.com/questions/20776887/stratified-splitting-the-data
+# Task 5 is inspired by https://scikit-learn.org/stable/modules/tree.html
+# Task 8 is inspired by https://youtu.be/VSoHJGx2Zpw
+# Task 11 is inspired by https://stackoverflow.com/questions/33937532/use-one-attribute-only-once-in-scikit-learn-decision-tree-in-python
